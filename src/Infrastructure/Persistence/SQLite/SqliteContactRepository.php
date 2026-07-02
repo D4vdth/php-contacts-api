@@ -100,7 +100,7 @@ final class SqliteContactRepository implements ContactRepositoryInterface
     }
 
     /** 
-     * @return Phone[] 
+     * @return string[] 
      * */
 
     private function findPhonesByContactId(string $contactId): array
@@ -109,13 +109,13 @@ final class SqliteContactRepository implements ContactRepositoryInterface
         $stmt->execute([':contact_id' => $contactId]);
 
         return array_map(
-            fn (array $row): Phone => Phone::create($row['phone']),
+            fn (array $row): string => $row['phone'],
             $stmt->fetchAll(),
         );
     }
 
     /** 
-     * @param Phone[] $phones 
+     * @param array $phones 
      * */
 
     private function hydrateContact(array $row, array $phones): Contact
@@ -185,8 +185,8 @@ final class SqliteContactRepository implements ContactRepositoryInterface
     }
 
     /**
-     * @param  string[] $contactIds
-     * @return array<string, Phone[]>
+     * @param  array $contactIds
+     * @return array
      */
 
     private function findPhonesGroupedByContactId(array $contactIds): array
@@ -206,7 +206,7 @@ final class SqliteContactRepository implements ContactRepositoryInterface
         $map = [];
 
         foreach ($stmt->fetchAll() as $row) {
-            $map[$row['contact_id']][] = Phone::create($row['phone']);
+            $map[$row['contact_id']][] = $row['phone'];
         }
 
         return $map;
