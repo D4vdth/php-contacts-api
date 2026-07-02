@@ -10,7 +10,9 @@ readonly class Phone extends AbstractStringValueObject
 {
     private const string E164_PATTERN = '/^\+[1-9]\d{6,14}$/';
 
-    private function __construct(private string $value){}
+    private function __construct(string $value){
+        parent::__construct($value);
+    }
 
     #[\NoDiscard]
     public static function create(string $value) : self 
@@ -31,4 +33,3 @@ readonly class Phone extends AbstractStringValueObject
     }
 
 } 
-?>

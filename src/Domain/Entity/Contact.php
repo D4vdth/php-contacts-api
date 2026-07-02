@@ -31,7 +31,7 @@ class Contact
 
 
     /**
-     * @param Phone[] $phones 
+     * @param string[] $phones 
      */
 
     #[\NoDiscard]
@@ -41,7 +41,13 @@ class Contact
         string $email, 
         array $phones = []
     ): self {
-        self::validateNoDuplicatePhones($phones);
+
+        $phoneObjects = array_map(
+            fn (string $number): Phone => Phone::create($number),
+            $phones
+        );
+
+        self::validateNoDuplicatePhones($phoneObjects);
 
         return new self(
             id: Uuid::generate(),
@@ -50,12 +56,15 @@ class Contact
             email: Email::create($email),
             createdAt:new DateTimeImmutable(),
             updatedAt: new DateTimeImmutable(),
-            phones:$phones
+            phones:$phoneObjects
         );
 
     }
 
-    #[\NoDiscard]
+    /**
+     * @param string[] $phones 
+     */
+
     public static function reconstitute(
         string $id,                    
         string $name,                  
@@ -65,6 +74,11 @@ class Contact
         DateTimeImmutable $createdAt, 
         DateTimeImmutable $updatedAt
     ): self {
+
+        $phoneObjects = array_map(
+            fn (string $number): Phone => Phone::fromExisting($number),
+            $phones
+        );
         
         return new self(
             id: Uuid::fromString($id),
@@ -73,7 +87,7 @@ class Contact
             email: Email::fromExisting($email),
             createdAt: $createdAt,
             updatedAt: $updatedAt,
-            phones:$phones
+            phones:$phoneObjects
         );
     }
 

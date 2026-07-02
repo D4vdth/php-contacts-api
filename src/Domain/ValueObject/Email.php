@@ -10,7 +10,9 @@ use App\Domain\ValueObject\AbstractStringValueObject;
 readonly class Email extends AbstractStringValueObject
 {
 
-    private function __construct(private string $value){}
+    private function __construct(string $value){
+        parent::__construct($value);
+    }
 
     #[\NoDiscard]
     public static function create(string $value) : self {

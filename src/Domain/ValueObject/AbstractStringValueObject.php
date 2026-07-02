@@ -9,9 +9,8 @@ use Stringable;
 
 abstract readonly class AbstractStringValueObject implements Stringable
 {
-    private const string VALID_CHARACTERS = "/^[\p{L}\p{M}' -]+$/u";
 
-    private function __construct(private string $value) {}
+    protected function __construct(private string $value) {}
 
     public function value(): string 
     {
@@ -29,9 +28,5 @@ abstract readonly class AbstractStringValueObject implements Stringable
         return $this->value;
     }
 
-    public function validCharacters(): string 
-    {
-        return self::VALID_CHARACTERS;
-    }
 
 }
