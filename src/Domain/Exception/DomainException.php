@@ -5,9 +5,6 @@ declare(strict_types=1);
 namespace App\Domain\Exception;
 
 
-abstract class DomainException extends \DomainException 
-{
-
-}
+abstract class DomainException extends \DomainException {}
 
 ?>
