@@ -8,6 +8,7 @@ use App\Domain\Entity\Contact;
 use App\Domain\Exception\ContactNotFoundException;
 use App\Domain\Repository\ContactRepositoryInterface;
 use App\Domain\ValueObject\Phone;
+use App\Domain\Exception\DuplicateEmailException;
 
 use DateTimeImmutable;
 use PDO;
@@ -29,7 +30,12 @@ final class SqliteContactRepository implements ContactRepositoryInterface
             $this->pdo->commit();
 
         } catch (PDOException $pe) {
+            
             $this->pdo->rollBack();
+             if ($pe->getCode() === '23000' && str_contains($pe->getMessage(), 'email')) {
+                    throw DuplicateEmailException::withValue($contact->email()->value());
+                }
+
             throw $pe;
         }
     }
