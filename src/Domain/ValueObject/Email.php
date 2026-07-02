@@ -13,7 +13,7 @@ readonly class Email implements Stringable
     private function __construct(private string $value){}
 
     #[\NoDiscard]
-    public static function Create(string $value) : self {
+    public static function create(string $value) : self {
         $norm = strtolower(trim($value));
 
         if (filter_var($norm, FILTER_VALIDATE_EMAIL) === false) {

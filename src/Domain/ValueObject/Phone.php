@@ -14,7 +14,7 @@ readonly class Phone implements Stringable
     private function __construct(private string $value){}
 
     #[\NoDiscard]
-    public static function Create(string $value) : self 
+    public static function create(string $value) : self 
     {
             $norm = trim($value);
 

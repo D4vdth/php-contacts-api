@@ -15,7 +15,7 @@ readonly class Name implements Stringable
     private function __construct(private string $value){}
 
     #[\NoDiscard]
-    public static function Create(string $value) : self {
+    public static function create(string $value) : self {
         $norm = strtolower(trim($value));
 
         if (empty($norm) || !preg_match(self::VALID_CHARACTERS, $norm)) {
