@@ -3,7 +3,7 @@
 .env
 
 /database/*.db
-/database/*.db-wall
+/database/*.db-wal
 /database/*.db-shm
 
 .idea/
