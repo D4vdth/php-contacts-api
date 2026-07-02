@@ -1,9 +1,12 @@
 services:
   app:
-    image: "docker/Dockerfile"
+    build: 
+      context: .
+      dockerfile: "docker/Dockerfile"
     volumes:
-      - ".:var/www/html"
+      - ".:/var/www/html"
     ports:
       - "8000:8000"
     environment:
       - APP_ENV=development
+    restart: always
