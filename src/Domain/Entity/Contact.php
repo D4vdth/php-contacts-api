@@ -68,9 +68,9 @@ class Contact
         
         return new self(
             id: Uuid::fromString($id),
-            name: Name::create($name),
-            lastName: LastName::create($lastName),
-            email: Email::create($email),
+            name: Name::fromExisting($name),
+            lastName: LastName::fromExisting($lastName),
+            email: Email::fromExisting($email),
             createdAt: $createdAt,
             updatedAt: $updatedAt,
             phones:$phones
@@ -105,7 +105,7 @@ class Contact
             $number = $phone->value();
 
             if (isset($seen[$number])) {
-                throw new DuplicatePhoneException($number);
+                throw DuplicatePhoneException::withValue($number);
             }
 
             $seen[$number] = true;
