@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Domain\ValueObject;
 use App\Domain\Exception\InvalidEmailException;
-use Override;
-use Stringable;
+use App\Domain\ValueObject\AbstractStringValueObject;
 
-readonly class Email implements Stringable
+
+readonly class Email extends AbstractStringValueObject
 {
 
     private function __construct(private string $value){}
@@ -23,21 +23,4 @@ readonly class Email implements Stringable
         return new self($norm);
     }
 
-    public function value(): string 
-    {
-        return $this->value;
-    }
-
-    public function isEqual(self $other): bool
-    {
-        return $this->value === $other->value;
-    }
-
-    #[Override]
-    public function __toString(): string
-    {
-        return $this->value;
-    }
-
-} 
-?>
+}

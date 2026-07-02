@@ -4,42 +4,23 @@ declare(strict_types=1);
 
 namespace App\Domain\ValueObject;
 use App\Domain\Exception\InvalidLastNameException;
-use Override;
-use Stringable;
+use App\Domain\ValueObject\AbstractStringValueObject;
 
-readonly class LastName implements Stringable
+readonly class LastName extends AbstractStringValueObject
 {
-
-    private const string VALID_CHARACTERS = "/^[\p{L}\p{M}' -]+$/u";
 
     private function __construct(private string $value){}
 
     #[\NoDiscard]
     public static function create(string $value) : self {
-        $norm = strtolower(trim($value));
+        $norm = trim($value);
+        $leng = mb_strlen($value);
 
-        if (empty($norm) || !preg_match(self::VALID_CHARACTERS, $norm)) {
+        if (empty($norm) || !preg_match(parent::validCharacters(), $norm) || $leng >= 3 || $leng <= 100) {
             throw InvalidLastNameException::withValue($value);
         }
 
         return new self($norm);
     }
 
-    public function value(): string 
-    {
-        return $this->value;
-    }
-
-    public function isEqual(self $other): bool
-    {
-        return $this->value === $other->value;
-    }
-
-    #[Override]
-    public function __toString(): string
-    {
-        return $this->value;
-    }
-
-} 
-?>
+}

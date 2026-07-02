@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Domain\ValueObject;
 
 use InvalidArgumentException;
-use Stringable;
+use App\Domain\ValueObject\AbstractStringValueObject;
 
-readonly class Uuid implements Stringable
+readonly class Uuid extends AbstractStringValueObject
 {
     private const string UUID_V4_PATTERN = '/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/';
 
@@ -48,18 +48,4 @@ readonly class Uuid implements Stringable
         return new self($normalized);
     }
 
-    public function value(): string
-    {
-        return $this->value;
-    }
-
-    public function equals(self $other): bool
-    {
-        return $this->value === $other->value;
-    }
-
-    public function __toString(): string
-    {
-        return $this->value;
-    }
 }

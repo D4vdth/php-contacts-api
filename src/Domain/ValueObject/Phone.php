@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace App\Domain\ValueObject;
 use App\Domain\Exception\InvalidPhoneException;
-use Override;
-use Stringable;
+use App\Domain\ValueObject\AbstractStringValueObject;
 
-readonly class Phone implements Stringable
+readonly class Phone extends AbstractStringValueObject
 {
     private const string E164_PATTERN = '/^\+[1-9]\d{6,14}$/';
 
@@ -24,22 +23,6 @@ readonly class Phone implements Stringable
                 }
 
             return new self($norm);
-    }
-
-    public function value(): string 
-    {
-        return $this->value;
-    }
-
-    public function isEqual(self $other): bool
-    {
-        return $this->value === $other->value;
-    }
-
-    #[Override]
-    public function __toString(): string
-    {
-        return $this->value;
     }
 
 } 
