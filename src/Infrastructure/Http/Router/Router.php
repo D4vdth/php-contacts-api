@@ -75,7 +75,7 @@ final class Router
             if (preg_match($regex, $path, $matches) === 1) {
                 $params = array_filter(
                     $matches,
-                    fn (string $key): bool => !is_int($key),
+                    fn (int|string $key): bool => is_string($key),
                     ARRAY_FILTER_USE_KEY,
                 );
 
