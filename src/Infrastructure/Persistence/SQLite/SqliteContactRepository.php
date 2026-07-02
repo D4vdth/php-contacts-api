@@ -16,7 +16,7 @@ use PDOException;
 final class SqliteContactRepository implements ContactRepositoryInterface
 {
 
-    private function __construct(
+    public function __construct(
         private readonly PDO $pdo,
     ){}
 
