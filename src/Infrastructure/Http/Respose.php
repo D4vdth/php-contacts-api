@@ -49,6 +49,14 @@ readonly class Response
         );
     }
 
+    public static function methodNotAllowed(string $method, string $path): self
+    {
+        return new self(
+            statusCode: 405,
+            body: ['error' => sprintf('Method %s is not allowed for %s.', $method, $path)],
+        );
+    }
+
     public static function notFound(string $message): self
     {
         return new self(
