@@ -23,4 +23,9 @@ readonly class Email extends AbstractStringValueObject
         return new self($norm);
     }
 
+    public static function fromExisting(string $value) : self 
+    {
+        return new self($value);
+    }
+
 }
