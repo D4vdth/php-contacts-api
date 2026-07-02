@@ -50,8 +50,8 @@ final class SqliteContactRepository implements ContactRepositoryInterface
 
         $stmt->execute([
             ':id'         => $contact->id()->value(),
-            ':name'       => $contact->name(),
-            ':last_name'  => $contact->lastName(),
+            ':name'       => $contact->name()->value(),
+            ':last_name'  => $contact->lastName()->value(),
             ':email'      => $contact->email()->value(),
             ':created_at' => $contact->createdAt()->format(DateTimeImmutable::ATOM),
             ':updated_at' => $contact->updatedAt()->format(DateTimeImmutable::ATOM),
