@@ -10,8 +10,7 @@
         "App\\Tests\\": "tests/"
     },
     "require": {
-        "php": ">=8.5",
-        "zircote/swagger-php": "^6.3"
+        "php": ">=8.5"
     },
     "require-dev": {
         "phpunit/phpunit": "*"
