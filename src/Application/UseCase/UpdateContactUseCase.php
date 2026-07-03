@@ -17,7 +17,7 @@ final readonly class UpdateContactUseCase
         private ContactRepositoryInterface $repository,
     ) {}
 
-    public function execute(UpdateContactDTO $dto): Contact
+    public function execute(UpdateContactDto $dto): Contact
     {
         $contact = $this->repository->findById($dto->id);
 
