@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Infrastructure\Http\Controller;
 
 use App\Application\Dto\CreateContactDto;
+use App\Application\Dto\ListContactsDto;
 use App\Application\Dto\UpdateContactDto;
+use App\Domain\Entity\Contact;
 use App\Domain\Exception\ContactNotFoundException;
 use App\Domain\Exception\DuplicateEmailException;
 use App\Application\UseCase\CreateContactUseCase;
@@ -33,14 +35,21 @@ class ContactController
      */
     public function index(Request $request): Response
     {
-        $contacts = $this->listContacts->execute();
+        $dto    = ListContactsDto::fromQueryParams($request->queryParams());
+        $result = $this->listContacts->execute($dto);
 
-        $data = array_map(
-            fn ($contact) => $contact->toArray(),
-            $contacts
-        );
-
-        return Response::json($data);
+        return Response::json([
+            'data' => array_map(
+                fn (Contact $contact): array => $contact->toArray(),
+                $result->items,
+            ),
+            'meta' => [
+                'current_page' => $dto->page,
+                'per_page'     => $dto->perPage,
+                'total'        => $result->total,
+                'total_pages'  => (int) ceil($result->total / $dto->perPage),
+            ],
+        ]);
     }
 
     /**
