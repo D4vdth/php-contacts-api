@@ -23,6 +23,9 @@ final class CreateContactUseCase
             throw DuplicateEmailException::withValue($dto->email);
         }
 
-        return Contact::create($dto->name, $dto->lastName, $dto->email, $dto->phones);
+        $newContact = Contact::create($dto->name, $dto->lastName, $dto->email, $dto->phones);
+        $this->repository->save($newContact);
+        return $newContact;
+
     }
 }
