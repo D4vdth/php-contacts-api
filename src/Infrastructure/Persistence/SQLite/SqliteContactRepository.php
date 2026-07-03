@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Persistence\SQLite;
 
+use App\Application\Dto\ListContactsDto;
 use App\Domain\Entity\Contact;
 use App\Domain\Exception\ContactNotFoundException;
 use App\Domain\Repository\ContactRepositoryInterface;
+use App\Domain\Repository\PaginatedResult;
 use App\Domain\ValueObject\Phone;
 use App\Domain\Exception\DuplicateEmailException;
 
@@ -164,30 +166,80 @@ final class SqliteContactRepository implements ContactRepositoryInterface
         return $this->hydrateContact($row, $phones);
     }
 
-    /** 
-     * @return Contact[] 
-     * */
-
-    public function findAll(): array
+    public function findAll(ListContactsDto $dto): PaginatedResult
     {
-        $rows = $this->pdo->query(
-            'SELECT id, name, last_name, email, created_at, updated_at FROM contacts ORDER BY created_at DESC'
-        )->fetchAll();
+        [$where, $params] = $this->buildWhere($dto->filters);
+
+        $orderBy = "ORDER BY {$dto->sort} {$dto->order}";
+        $limit   = $dto->perPage;
+        $offset  = ($dto->page - 1) * $dto->perPage;
+
+        $sql = "SELECT id, name, last_name, email, created_at, updated_at FROM contacts $where $orderBy LIMIT :limit OFFSET :offset";
+
+        $stmt = $this->pdo->prepare($sql);
+
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value, PDO::PARAM_STR);
+        }
+
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        $rows = $stmt->fetchAll();
+
+        $total = $this->countAll($where, $params);
 
         if ($rows === []) {
-            return [];
+            return new PaginatedResult(items: [], total: $total);
         }
 
         $contactIds = array_column($rows, 'id');
         $phonesMap  = $this->findPhonesGroupedByContactId($contactIds);
 
-        return array_map(
+        $contacts = array_map(
             fn (array $row): Contact => $this->hydrateContact(
                 $row,
                 $phonesMap[$row['id']] ?? [],
             ),
             $rows,
         );
+
+        return new PaginatedResult(items: $contacts, total: $total);
+    }
+
+    /**
+     * @param array<string, string> $filters
+     * @return array{0: string, 1: array<string, string>}
+     */
+
+    private function buildWhere(array $filters): array
+    {
+        $conditions = [];
+        $params = [];
+
+        foreach ($filters as $field => $value) {
+            $conditions[] = "$field LIKE :$field";
+            $params[":$field"] = "%$value%";
+        }
+
+        $where = $conditions !== []
+            ? 'WHERE ' . implode(' AND ', $conditions)
+            : '';
+
+        return [$where, $params];
+    }
+
+    /**
+     * @param array<string, string> $params
+     */
+
+    private function countAll(string $where, array $params): int
+    {
+        $stmt = $this->pdo->prepare("SELECT COUNT(*) as total FROM contacts $where");
+        $stmt->execute($params);
+
+        return (int) $stmt->fetchColumn();
     }
 
     /**
