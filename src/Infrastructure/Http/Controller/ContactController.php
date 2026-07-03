@@ -48,11 +48,15 @@ class ContactController
      */
     public function show(Request $request): Response
     {
-        $id = $request->routeParam('id');
+        try {
+            $id = $request->routeParam('id');
+            $contact = $this->getContact->execute($id);
 
-        $contact = $this->getContact->execute($id);
+            return Response::json($contact->toArray());
 
-        return Response::json($contact->toArray());
+        } catch (ContactNotFoundException $e) {
+            return Response::notFound($e->getMessage());
+        }
     }
 
     /**
