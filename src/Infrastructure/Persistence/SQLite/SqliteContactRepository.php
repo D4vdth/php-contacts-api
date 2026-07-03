@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Persistence\SQLite;
 
-use App\Application\Dto\ListContactsDto;
 use App\Domain\Entity\Contact;
 use App\Domain\Exception\ContactNotFoundException;
 use App\Domain\Repository\ContactRepositoryInterface;
@@ -166,13 +165,23 @@ final class SqliteContactRepository implements ContactRepositoryInterface
         return $this->hydrateContact($row, $phones);
     }
 
-    public function findAll(ListContactsDto $dto): PaginatedResult
-    {
-        [$where, $params] = $this->buildWhere($dto->filters);
+    /**
+     * @param array<string, string> $filters
+     */
 
-        $orderBy = "ORDER BY {$dto->sort} {$dto->order}";
-        $limit   = $dto->perPage;
-        $offset  = ($dto->page - 1) * $dto->perPage;
+    public function findAll(
+        int $page,
+        int $perPage,
+        string $sort,
+        string $order,
+        array $filters,
+    ): PaginatedResult
+    {
+        [$where, $params] = $this->buildWhere($filters);
+
+        $orderBy = "ORDER BY $sort $order";
+        $limit   = $perPage;
+        $offset  = ($page - 1) * $perPage;
 
         $sql = "SELECT id, name, last_name, email, created_at, updated_at FROM contacts $where $orderBy LIMIT :limit OFFSET :offset";
 
