@@ -18,10 +18,6 @@ final class GetContactUseCase
     public function execute(string $id): Contact {
 
         $contact = $this->repository->findById($id);
-
-        if (!$contact){
-            throw ContactNotFoundException::withValue($contact);
-        }
     
         return $contact;
     }

@@ -19,7 +19,7 @@ final class CreateContactUseCase
     public function execute(CreateContactDto $dto): Contact {
         $contact = $this->repository->findByEmail($dto->email);
 
-        if (empty($contact)){
+        if ($contact !== null){
             throw DuplicateEmailException::withValue($dto->email);
         }
 
