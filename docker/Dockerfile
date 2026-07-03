@@ -2,6 +2,7 @@ FROM php:8.5-cli AS build
 
 RUN apt-get update && apt-get install -y \
     libsqlite3-dev \
+    unzip \
     && rm -rf /var/lib/apt/lists/* \
     && docker-php-ext-install pdo_sqlite
 

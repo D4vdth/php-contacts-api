@@ -7,14 +7,15 @@
         }
     },
     "autoload-dev": {
-        "App\\Test\\": "test/"
+        "App\\Tests\\": "tests/"
     },
     "require": {
         "php": ">=8.5"
     },
-    "require-dev": {},
+    "require-dev": {
+        "phpunit/phpunit": "*"
+    },
     "scripts": {
-        "test": "phpunit --configuration phputin.xml"
+        "test": "phpunit --configuration phpunit.xml"
     }
 }
-
