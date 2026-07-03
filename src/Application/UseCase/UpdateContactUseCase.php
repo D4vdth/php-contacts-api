@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Contact\Application\UseCase;
+namespace App\Application\UseCase;
 
 use App\Application\Dto\UpdateContactDto;
 use App\Domain\Entity\Contact;
