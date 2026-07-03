@@ -94,6 +94,11 @@ readonly class Response
         return $this->statusCode;
     }
 
+    public function body(): mixed
+    {
+        return $this->body;
+    }
+
     public function send(): void
     {
         http_response_code($this->statusCode);
