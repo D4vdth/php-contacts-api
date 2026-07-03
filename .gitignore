@@ -1,0 +1,12 @@
+/vendor/
+
+.env
+
+/database/*.db
+/database/*.db-wal
+/database/*.db-shm
+
+.idea/
+.vscode/
+
+*.cache

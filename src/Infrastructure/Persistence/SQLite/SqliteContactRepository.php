@@ -1,0 +1,282 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Infrastructure\Persistence\SQLite;
+
+use App\Domain\Entity\Contact;
+use App\Domain\Exception\ContactNotFoundException;
+use App\Domain\Repository\ContactRepositoryInterface;
+use App\Domain\Repository\PaginatedResult;
+use App\Domain\ValueObject\Phone;
+use App\Domain\Exception\DuplicateEmailException;
+
+use DateTimeImmutable;
+use PDO;
+use PDOException;
+
+final class SqliteContactRepository implements ContactRepositoryInterface
+{
+
+    public function __construct(
+        private readonly PDO $pdo,
+    ){}
+
+    public function save(Contact $contact): void
+    {
+        try {
+            $this->pdo->beginTransaction();
+            $this->upsertContact($contact);
+            $this->replacePhones($contact);
+            $this->pdo->commit();
+
+        } catch (PDOException $pe) {
+            
+            $this->pdo->rollBack();
+             if ($pe->getCode() === '23000' && str_contains($pe->getMessage(), 'email')) {
+                    throw DuplicateEmailException::withValue($contact->email()->value());
+                }
+
+            throw $pe;
+        }
+    }
+
+    private function upsertContact(Contact $contact): void
+    {
+        $sql = <<<'SQL'
+            INSERT INTO contacts (id, name, last_name, email, created_at, updated_at)
+            VALUES (:id, :name, :last_name, :email, :created_at, :updated_at)
+            ON CONFLICT(id) DO UPDATE SET
+                name       = :name,
+                last_name  = :last_name,
+                email      = :email,
+                updated_at = :updated_at
+            SQL;
+
+        $stmt = $this->pdo->prepare($sql);
+
+        $stmt->execute([
+            ':id'         => $contact->id()->value(),
+            ':name'       => $contact->name()->value(),
+            ':last_name'  => $contact->lastName()->value(),
+            ':email'      => $contact->email()->value(),
+            ':created_at' => $contact->createdAt()->format(DateTimeImmutable::ATOM),
+            ':updated_at' => $contact->updatedAt()->format(DateTimeImmutable::ATOM),
+        ]);
+    }
+
+    private function replacePhones(Contact $contact): void
+    {
+        $contactId = $contact->id()->value();
+
+        $this->pdo->prepare('DELETE FROM contact_phones WHERE contact_id = :contact_id')
+            ->execute([':contact_id' => $contactId]);
+
+        if ($contact->phones() === []) {
+            return;
+        }
+
+        $stmt = $this->pdo->prepare(
+            'INSERT INTO contact_phones (contact_id, phone) VALUES (:contact_id, :phone)'
+        );
+
+        foreach ($contact->phones() as $phone) {
+            $stmt->execute([
+                ':contact_id' => $contactId,
+                ':phone'      => $phone->value(),
+            ]);
+        }
+    }
+
+    public function findById(string $id): Contact
+    {
+        $sql = 'SELECT id, name, last_name, email, created_at, updated_at FROM contacts WHERE id = :id';
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([':id' => $id]);
+
+        $row = $stmt->fetch();
+
+        if ($row === false) {
+            throw ContactNotFoundException::withValue($id);
+        }
+
+        $phones = $this->findPhonesByContactId($id);
+
+        return $this->hydrateContact($row, $phones);
+    }
+
+    /** 
+     * @return string[] 
+     * */
+
+    private function findPhonesByContactId(string $contactId): array
+    {
+        $stmt = $this->pdo->prepare('SELECT phone FROM contact_phones WHERE contact_id = :contact_id');
+        $stmt->execute([':contact_id' => $contactId]);
+
+        return array_map(
+            fn (array $row): string => $row['phone'],
+            $stmt->fetchAll(),
+        );
+    }
+
+    /** 
+     * @param array $phones 
+     * */
+
+    private function hydrateContact(array $row, array $phones): Contact
+    {
+        return Contact::reconstitute(
+            id: $row['id'],
+            name: $row['name'],
+            lastName: $row['last_name'],
+            email: $row['email'],
+            phones: $phones,
+            createdAt: new DateTimeImmutable($row['created_at']),
+            updatedAt: new DateTimeImmutable($row['updated_at']),
+        );
+    }
+
+
+    public function delete(string $id): void
+    {
+        $this->findById($id);
+
+        $this->pdo->prepare('DELETE FROM contacts WHERE id = :id')
+            ->execute([':id' => $id]);
+    }
+
+    public function findByEmail(string $email): ?Contact
+    {
+        $sql = 'SELECT id, name, last_name, email, created_at, updated_at FROM contacts WHERE email = :email';
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([':email' => $email]);
+
+        $row = $stmt->fetch();
+
+        if ($row === false) {
+            return null;
+        }
+
+        $phones = $this->findPhonesByContactId($row['id']);
+
+        return $this->hydrateContact($row, $phones);
+    }
+
+    /**
+     * @param array<string, string> $filters
+     */
+
+    public function findAll(
+        int $page,
+        int $perPage,
+        string $sort,
+        string $order,
+        array $filters,
+    ): PaginatedResult
+    {
+        [$where, $params] = $this->buildWhere($filters);
+
+        $orderBy = "ORDER BY $sort $order";
+        $limit   = $perPage;
+        $offset  = ($page - 1) * $perPage;
+
+        $sql = "SELECT id, name, last_name, email, created_at, updated_at FROM contacts $where $orderBy LIMIT :limit OFFSET :offset";
+
+        $stmt = $this->pdo->prepare($sql);
+
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value, PDO::PARAM_STR);
+        }
+
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        $rows = $stmt->fetchAll();
+
+        $total = $this->countAll($where, $params);
+
+        if ($rows === []) {
+            return new PaginatedResult(items: [], total: $total);
+        }
+
+        $contactIds = array_column($rows, 'id');
+        $phonesMap  = $this->findPhonesGroupedByContactId($contactIds);
+
+        $contacts = array_map(
+            fn (array $row): Contact => $this->hydrateContact(
+                $row,
+                $phonesMap[$row['id']] ?? [],
+            ),
+            $rows,
+        );
+
+        return new PaginatedResult(items: $contacts, total: $total);
+    }
+
+    /**
+     * @param array<string, string> $filters
+     * @return array{0: string, 1: array<string, string>}
+     */
+
+    private function buildWhere(array $filters): array
+    {
+        $conditions = [];
+        $params = [];
+
+        foreach ($filters as $field => $value) {
+            $conditions[] = "$field LIKE :$field";
+            $params[":$field"] = "%$value%";
+        }
+
+        $where = $conditions !== []
+            ? 'WHERE ' . implode(' AND ', $conditions)
+            : '';
+
+        return [$where, $params];
+    }
+
+    /**
+     * @param array<string, string> $params
+     */
+
+    private function countAll(string $where, array $params): int
+    {
+        $stmt = $this->pdo->prepare("SELECT COUNT(*) as total FROM contacts $where");
+        $stmt->execute($params);
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * @param  array $contactIds
+     * @return array
+     */
+
+    private function findPhonesGroupedByContactId(array $contactIds): array
+    {
+        if ($contactIds === []) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($contactIds), '?'));
+
+        $stmt = $this->pdo->prepare(
+            "SELECT contact_id, phone FROM contact_phones WHERE contact_id IN ($placeholders)"
+        );
+
+        $stmt->execute($contactIds);
+
+        $map = [];
+
+        foreach ($stmt->fetchAll() as $row) {
+            $map[$row['contact_id']][] = $row['phone'];
+        }
+
+        return $map;
+    }
+
+}
